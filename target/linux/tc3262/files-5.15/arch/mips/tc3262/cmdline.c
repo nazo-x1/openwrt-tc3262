@@ -3,11 +3,11 @@
 
 #include <asm/bootinfo.h>
 
-#if defined(CONFIG_RT2880_UART_115200)
+//#if defined(CONFIG_RT2880_UART_115200)
 #define TTY_UART_CONSOLE	"console=ttyS0,115200n8"
-#else
-#define TTY_UART_CONSOLE	"console=ttyS0,57600n8"
-#endif
+//#else
+//#define TTY_UART_CONSOLE	"console=ttyS0,57600n8"
+//#endif
 
 #ifdef CONFIG_MIPS_CMDLINE_FROM_BOOTLOADER
 extern int prom_argc;

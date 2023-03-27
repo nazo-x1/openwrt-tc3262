@@ -69,7 +69,8 @@ static struct irqaction irq_call = {
 
 void __init arch_init_ipiirq(int irq, struct irqaction *action)
 {
-	setup_irq(irq, action);
+	if (request_irq(irq, action->handler, action->flags, action->name, NULL))
+		pr_err("Unable to setup interrupt: %s\n", action->name);
 	irq_set_handler(irq, handle_percpu_irq);
 }
 

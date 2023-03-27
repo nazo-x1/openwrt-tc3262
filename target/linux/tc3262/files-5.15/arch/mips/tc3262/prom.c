@@ -3,6 +3,7 @@
 #include <linux/string.h>
 #include <linux/kernel.h>
 #include <linux/delay.h>
+#include <linux/memblock.h>
 #include <asm/bootinfo.h>
 #include <asm/cacheflush.h>
 #include <asm/traps.h>
@@ -196,11 +197,11 @@ static inline void tc_uart_setup(void)
 	VPchar(CR_HSUART_LCR) = UART_BRD_ACCESS;
 
 	div_y = UART_XYD_Y;
-#if defined(CONFIG_RT2880_UART_115200)
+//#if defined(CONFIG_RT2880_UART_115200)
 	div_x = 59904;	// Baud rate 115200
-#else
-	div_x = 29952;	// Baud rate 57600
-#endif
+//#else
+//	div_x = 29952;	// Baud rate 57600
+//#endif
 	word = (div_x << 16) | div_y;
 	VPint(CR_HSUART_XYD) = word;
 
@@ -291,7 +292,6 @@ static inline void tc_fe_setup(void)
 void __init mips_nmi_setup(void)
 {
 	void *base;
-	extern char except_vec_nmi;
 
 	base = cpu_has_veic ?
 		(void *)(ebase + 0x200 + VECTORSPACING * 64) :
@@ -330,7 +330,8 @@ void __init prom_init(void)
 	const char *ram_type;
 
 	/* Test supported hardware */
-#if defined(CONFIG_ECONET_EN7512)
+#if defined(CONFIG_ECONET_EN7512) || \
+    defined(CONFIG_ECONET_EN7526)
 	if (!isEN751221)
 #elif defined(CONFIG_ECONET_EN7516) || \
       defined(CONFIG_ECONET_EN7527)
@@ -352,6 +353,7 @@ void __init prom_init(void)
 
 	tc_mips_setup();
 	tc_uart_setup();
+	prom_printf("UART ACTIVE!\n");
 	tc_ahb_setup();
 	tc_usb_setup();
 	tc_dmt_setup();
@@ -383,23 +385,26 @@ void __init prom_init(void)
 	}
 
 	/* 1. Initial reserved region. */
-	if (memoffs != 0)
-		add_memory_region(0, memoffs, BOOT_MEM_RESERVED);
+	if (memoffs != 0) {
+		memblock_add(0, memoffs);
+		memblock_reserve(0, memoffs);
+	}
 
 	/* 2. Normal region. */
 	memregn = memsize - memoffs - memresv;
-	add_memory_region(memoffs, memregn, BOOT_MEM_RAM);
+	memblock_add(memoffs, memregn);
 
 	/* 3. HWQ reserved region. */
-	if (memresv != 0)
-		add_memory_region(memoffs + memregn, memresv,
-				  BOOT_MEM_RESERVED);
+	if (memresv != 0) {
+		memblock_add(memoffs + memregn, memresv);
+		memblock_reserve(memoffs + memregn, memresv);
+	}
 
 #ifdef CONFIG_HIGHMEM
 	/* 4. Highmem region. */
 	if (memhigh != 0)
-		add_memory_region(EN75XX_HIGHMEM_START, memhigh,
-				  BOOT_MEM_RAM);
+		memblock_add(EN75XX_HIGHMEM_START, memhigh,
+			     BOOT_MEM_RAM);
 #endif
 
 	bus_freq = SYS_HCLK;

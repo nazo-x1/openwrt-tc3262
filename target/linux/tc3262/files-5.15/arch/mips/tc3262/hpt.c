@@ -177,9 +177,9 @@ static u64 notrace hpt_read_sched_clock(void)
 	return (u64)hpt_read();
 }
 
-static cycle_t hpt_clocksource_read(struct clocksource *cs)
+static u64 hpt_clocksource_read(struct clocksource *cs)
 {
-	return (cycle_t)hpt_read();
+	return (u64)hpt_read();
 }
 
 int __init init_r4k_clocksource(void)

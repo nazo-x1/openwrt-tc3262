@@ -129,18 +129,6 @@ static irqreturn_t cpu_cm_pcint_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static struct irqaction cpu_cm_err_irqaction = {
-	.handler	 = cpu_cm_err_interrupt,
-	.flags		 = IRQF_NO_THREAD,
-	.name		 = "cpu_cm_err",
-};
-
-static struct irqaction cpu_cm_pcint_irqaction = {
-	.handler	 = cpu_cm_pcint_interrupt,
-	.flags		 = IRQF_NO_THREAD,
-	.name		 = "cpu_cm_pcint",
-};
-
 void __init gic_platform_init(int irqs, struct irq_chip *irq_controller)
 {
 	int i, intSrc;
@@ -199,8 +187,12 @@ void __init arch_init_irq(void)
 	gic_init(gic_base, RALINK_GIC_ADDRSPACE_SZ, gic_intr_map,
 		 ARRAY_SIZE(gic_intr_map), MIPS_GIC_IRQ_BASE);
 
-	setup_irq(CPU_CM_ERR, &cpu_cm_err_irqaction);
-	setup_irq(CPU_CM_PCINT, &cpu_cm_pcint_irqaction);
+	if (request_irq(CPU_CM_ERR, cpu_cm_err_interrupt, IRQF_NO_THREAD,
+			"cpu_cm_err", NULL))
+		pr_err("Failed to setup CPU_CM_ERR interrupt\n");
+	if (request_irq(CPU_CM_PCINT, cpu_cm_pcint_interrupt, IRQF_NO_THREAD,
+			"cpu_cm_pcint", NULL))
+		pr_err("Failed to setup CPU_CM_PCINT interrupt\n");
 }
 
 asmlinkage void plat_irq_dispatch(void)

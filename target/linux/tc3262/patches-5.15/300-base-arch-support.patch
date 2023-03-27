@@ -1,0 +1,217 @@
+--- a/arch/mips/Kbuild.platforms
++++ b/arch/mips/Kbuild.platforms
+@@ -33,6 +33,7 @@ platform-$(CONFIG_SIBYTE_SB1250)	+= siby
+ platform-$(CONFIG_SIBYTE_BCM1x55)	+= sibyte/
+ platform-$(CONFIG_SIBYTE_BCM1x80)	+= sibyte/
+ platform-$(CONFIG_SNI_RM)		+= sni/
++platform-$(CONFIG_MIPS_TC3262)		+= tc3262/
+ platform-$(CONFIG_MACH_TX39XX)		+= txx9/
+ platform-$(CONFIG_MACH_TX49XX)		+= txx9/
+ platform-$(CONFIG_MACH_VR41XX)		+= vr41xx/
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -110,6 +110,40 @@ config MIPS_FIXUP_BIGPHYS_ADDR
+ config MIPS_GENERIC
+ 	bool
+ 
++config MIPS_TC3262_34K
++        select SYS_SUPPORTS_MULTITHREADING
++        select SYS_SUPPORTS_SMP
++        bool
++
++config MIPS_TC3262_1004K
++        select SYS_SUPPORTS_MULTITHREADING
++        select SYS_SUPPORTS_SMP
++        select SYS_SUPPORTS_MIPS_CMP
++        select SYS_SUPPORTS_MIPS_CPS
++        select SYS_SUPPORTS_HIGHMEM
++        select MIPS_CPU_SCACHE
++#       select IRQ_GIC - TODO(cjd): This has been replaced with MIPS_GIC but it needs testing
++#       select IRQ_GIC_EIC
++        select WEAK_REORDERING_BEYOND_LLSC
++        select TC3262_CPU_TIMER
++        bool
++
++config MIPS_TC3262
++        bool
++        select DMA_NONCOHERENT
++        select HW_HAS_PCI
++        select BOOT_RAW
++        select SYS_HAS_EARLY_PRINTK
++        select SYS_HAS_CPU_MIPS32_R1
++        select SYS_HAS_CPU_MIPS32_R2
++        select SYS_SUPPORTS_MIPS16
++        select SYS_SUPPORTS_32BIT_KERNEL
++        select CSRC_R4K
++        select CEVT_R4K
++        select CPU_MIPSR2_IRQ_VI
++        select CPU_MIPSR2_IRQ_EI
++        select NO_EXCEPT_FILL
++
+ config MACH_INGENIC
+ 	bool
+ 	select SYS_SUPPORTS_32BIT_KERNEL
+@@ -129,6 +163,9 @@ config MACH_INGENIC
+ 
+ menu "Machine selection"
+ 
++config ECONET_EN75XX_MP
++	bool
++
+ choice
+ 	prompt "System type"
+ 	default MIPS_GENERIC_KERNEL
+@@ -931,6 +968,52 @@ config SNI_RM
+ 	  Technology and now in turn merged with Fujitsu.  Say Y here to
+ 	  support this machine type.
+ 
++config ECONET_EN7512
++        bool "EcoNET EN7512/3 board"
++        select MIPS_TC3262
++        select MIPS_TC3262_34K
++        select ECONET_EN75XX_MP
++        select SYS_SUPPORTS_BIG_ENDIAN
++        help
++          EcoNET evaluation board based on EN7512/3
++
++config ECONET_EN7516
++        bool "EcoNET EN7516 board"
++        select MIPS_TC3262
++        select MIPS_TC3262_1004K
++        select ECONET_EN75XX_MP
++        select SYS_SUPPORTS_BIG_ENDIAN
++        help
++          EcoNET evaluation board based on EN7516
++
++config ECONET_EN7526
++        bool "EcoNET EN7526 board"
++        select MIPS_TC3262
++        select MIPS_TC3262_34K
++	select IRQ_MIPS_CPU
++        select ECONET_EN75XX_MP
++        select SYS_SUPPORTS_BIG_ENDIAN
++        help
++          EcoNET evaluation board based on EN7526
++
++config ECONET_EN7527
++        bool "EcoNET EN7527/EN7561G board"
++        select MIPS_TC3262
++        select MIPS_TC3262_1004K
++        select ECONET_EN75XX_MP
++        select SYS_SUPPORTS_BIG_ENDIAN
++        help
++          EcoNET evaluation board based on EN7527/EN7561G
++
++config ECONET_EN7528
++        bool "EcoNET EN7528DU/EN7561DU board"
++        select MIPS_TC3262
++        select MIPS_TC3262_1004K
++        select ECONET_EN75XX_MP
++        select SYS_SUPPORTS_LITTLE_ENDIAN
++        help
++          EcoNET evaluation board based on EN7528DU/EN7561DU
++
+ config MACH_TX39XX
+ 	bool "Toshiba TX39 series based machines"
+ 
+@@ -1069,6 +1152,7 @@ source "arch/mips/pic32/Kconfig"
+ source "arch/mips/ralink/Kconfig"
+ source "arch/mips/sgi-ip27/Kconfig"
+ source "arch/mips/sibyte/Kconfig"
++source "arch/mips/tc3262/Kconfig"
+ source "arch/mips/txx9/Kconfig"
+ source "arch/mips/vr41xx/Kconfig"
+ source "arch/mips/cavium-octeon/Kconfig"
+--- a/arch/mips/kernel/mips-mt.c
++++ b/arch/mips/kernel/mips-mt.c
+@@ -123,6 +123,16 @@ static int mt_opt_rpsctl = -1;
+ static int mt_opt_nblsu = -1;
+ static int mt_opt_forceconfig7;
+ static int mt_opt_config7 = -1;
++#ifdef CONFIG_MIPS_TC3262_34K
++static int mt_opt_es;
++
++static int __init es_set(char *str)
++{
++	get_option(&str, &mt_opt_es);
++	return 1;
++}
++__setup("es=", es_set);
++#endif
+ 
+ static int __init rpsctl_set(char *str)
+ {
+@@ -161,6 +171,15 @@ void mips_mt_set_cpuoptions(void)
+ 	unsigned int oconfig7 = read_c0_config7();
+ 	unsigned int nconfig7 = oconfig7;
+ 
++#ifdef CONFIG_MIPS_TC3262_34K
++	if (mt_opt_es >= 0) {
++		if (mt_opt_es)
++			nconfig7 |= (1 << 8);
++		else
++			nconfig7 &= ~(1 << 8);
++	}
++#endif
++
+ 	if (mt_opt_rpsctl >= 0) {
+ 		printk("34K return prediction stack override set to %d.\n",
+ 			mt_opt_rpsctl);
+--- a/arch/mips/kernel/smp-mt.c
++++ b/arch/mips/kernel/smp-mt.c
+@@ -107,6 +107,10 @@ static void __init smvp_tc_init(unsigned
+ 
+ static void vsmp_init_secondary(void)
+ {
++#ifdef CONFIG_MIPS_TC3262_34K
++	write_c0_status((read_c0_status() & ~ST0_IM ) |
++			(STATUSF_IP0 | STATUSF_IP1));
++#else
+ 	/* This is Malta specific: IPI,performance and timer interrupts */
+ 	if (mips_gic_present())
+ 		change_c0_status(ST0_IM, STATUSF_IP2 | STATUSF_IP3 |
+@@ -115,6 +119,7 @@ static void vsmp_init_secondary(void)
+ 	else
+ 		change_c0_status(ST0_IM, STATUSF_IP0 | STATUSF_IP1 |
+ 					 STATUSF_IP6 | STATUSF_IP7);
++#endif
+ }
+ 
+ static void vsmp_smp_finish(void)
+--- a/include/linux/kernel.h
++++ b/include/linux/kernel.h
+@@ -23,6 +23,12 @@
+ 
+ #include <uapi/linux/kernel.h>
+ 
++#ifdef CONFIG_TC3262_IMEM
++#define __IMEM  __attribute__  ((__section__(".imem_text")))
++#else
++#define __IMEM
++#endif
++
+ #define STACK_MAGIC	0xdeadbeef
+ 
+ /**
+--- a/arch/mips/kernel/cevt-r4k.c
++++ b/arch/mips/kernel/cevt-r4k.c
+@@ -290,7 +290,7 @@ core_initcall(r4k_register_cpufreq_notif
+ 
+ #endif /* !CONFIG_CPU_FREQ */
+ 
+-int r4k_clockevent_init(void)
++int __weak r4k_clockevent_init(void)
+ {
+ 	unsigned long flags = IRQF_PERCPU | IRQF_TIMER | IRQF_SHARED;
+ 	unsigned int cpu = smp_processor_id();
+--- a/arch/mips/kernel/csrc-r4k.c
++++ b/arch/mips/kernel/csrc-r4k.c
+@@ -105,7 +105,7 @@ core_initcall(r4k_register_cpufreq_notif
+ 
+ #endif /* !CONFIG_CPU_FREQ */
+ 
+-int __init init_r4k_clocksource(void)
++int __init __weak init_r4k_clocksource(void)
+ {
+ 	if (!cpu_has_counter || !mips_hpt_frequency)
+ 		return -ENXIO;

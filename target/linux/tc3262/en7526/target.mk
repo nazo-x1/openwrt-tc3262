@@ -4,7 +4,7 @@
 
 ARCH:=mips
 SUBTARGET:=en7526
-BOARDNAME:=EN7526 boards (64 bit)
+BOARDNAME:=EN7526 boards
 #CPU_TYPE:=24kc
 
 define Target/Description

@@ -97,7 +97,7 @@ static void tc_machine_power_off(void)
 	pr_warn("Machine poweroff...\n");
 	hw_reset(false);
 }
-
+/* cjd Mar 26, 2023 // This is not relevant because the kernel will fire the reboot.
 static int tc_panic_event(struct notifier_block *nb,
 			  unsigned long action, void *data)
 {
@@ -112,14 +112,14 @@ static int tc_panic_event(struct notifier_block *nb,
 static struct notifier_block tc_panic_block = {
 	.notifier_call = tc_panic_event,
 };
-
+*/
 static void tc_reboot_setup(void)
 {
 	_machine_restart = tc_machine_restart;
 	_machine_halt = tc_machine_halt;
 	pm_power_off = tc_machine_power_off;
 
-	atomic_notifier_chain_register(&panic_notifier_list, &tc_panic_block);
+	//atomic_notifier_chain_register(&panic_notifier_list, &tc_panic_block);
 }
 
 void __init plat_mem_setup(void)

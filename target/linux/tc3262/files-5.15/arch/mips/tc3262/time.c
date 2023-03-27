@@ -2,6 +2,7 @@
 #include <linux/types.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
+#include <linux/irq.h>
 #include <asm/time.h>
 #include <asm/pbus-timer.h>
 #include <asm/tc3162/tc3162.h>
@@ -31,19 +32,7 @@ irqreturn_t rbus_timeout_interrupt(int irq, void *dev_id)
 	 */
 	return IRQ_HANDLED;
 }
-
-static struct irqaction rbus_timeout_irqaction = {
-	.handler	 = rbus_timeout_interrupt,
-	.flags		 = IRQF_NO_THREAD,
-	.name		 = "rbus timeout",
-};
 #endif
-
-static struct irqaction tc_bus_timeout_irqaction = {
-	.handler	= tc_bus_timeout_interrupt,
-	.flags		= IRQF_NO_THREAD,
-	.name		= "bus timeout",
-};
 
 void __init __weak plat_hpt_init(void)
 {
@@ -67,10 +56,14 @@ void __init plat_time_init(void)
 #endif
 
 	/* setup a bus timeout interrupt */
-	setup_irq(BUS_TOUT_INT, &tc_bus_timeout_irqaction);
+	if (request_irq(BUS_TOUT_INT, tc_bus_timeout_interrupt,
+			IRQF_NO_THREAD, "bus timeout", NULL))
+		pr_err("Failed to request bus timeout interrupt\n");
 
 #ifdef CONFIG_ECONET_EN7528
-	setup_irq(RBUS_TOUT_INTR, &rbus_timeout_irqaction);
+	if (request_irq(RBUS_TOUT_INTR, rbus_timeout_interrupt,
+			IRQF_NO_THREAD, "rbus timeout", NULL))
+		pr_err("Failed to setup rbus timeout interrupt\n");
 
 	/* ASIC bus_clk: 235MHz */
 	VPint(CR_MON_TMR) = 0x10000000;	/* unit: one bus clock */
