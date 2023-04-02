@@ -304,3 +304,40 @@ asmlinkage void plat_irq_dispatch(void)
 
 	do_IRQ(irq);
 }
+
+#ifndef CONFIG_MIPS_GIC
+void mips_smp_send_ipi_single(int cpu, unsigned int action)
+{
+	int i;
+	unsigned long flags;
+	int vpflags;
+	
+	local_irq_save(flags);
+	vpflags = dvpe();	/* can't access the other CPU's registers whilst MVPE enabled */
+
+	switch (action) {
+	case SMP_CALL_FUNCTION:
+		i = C_SW1;
+		break;
+
+	case SMP_RESCHEDULE_YOURSELF:
+	default:
+		i = C_SW0;
+		break;
+	}
+
+	/* 1:1 mapping of vpe and tc... */
+	settc(cpu);
+	write_vpe_c0_cause(read_vpe_c0_cause() | i);
+	evpe(vpflags);
+
+	local_irq_restore(flags);
+}
+void mips_smp_send_ipi_mask(const struct cpumask *mask, unsigned int action)
+{
+	unsigned int i;
+
+	for_each_cpu(i, mask)
+		mips_smp_send_ipi_single(i, action);
+}
+#endif

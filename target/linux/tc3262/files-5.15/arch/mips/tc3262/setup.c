@@ -53,7 +53,7 @@ static inline void hw_uninit(void)
 	stop_dsl_dmt();
 
 	/* stop each module dma task */
-	tc_disable_irq_all();
+	// TODO(cjd): tc_disable_irq_all();
 
 #if !defined(CONFIG_ECONET_EN7528)
 	/* stop atm sar dma */

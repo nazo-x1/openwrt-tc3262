@@ -61,7 +61,7 @@
  choice
  	prompt "System type"
  	default MIPS_GENERIC_KERNEL
-@@ -931,6 +968,52 @@ config SNI_RM
+@@ -931,6 +968,51 @@ config SNI_RM
  	  Technology and now in turn merged with Fujitsu.  Say Y here to
  	  support this machine type.
  
@@ -87,7 +87,6 @@
 +        bool "EcoNET EN7526 board"
 +        select MIPS_TC3262
 +        select MIPS_TC3262_34K
-+	select IRQ_MIPS_CPU
 +        select ECONET_EN75XX_MP
 +        select SYS_SUPPORTS_BIG_ENDIAN
 +        help
@@ -114,7 +113,7 @@
  config MACH_TX39XX
  	bool "Toshiba TX39 series based machines"
  
-@@ -1069,6 +1152,7 @@ source "arch/mips/pic32/Kconfig"
+@@ -1069,6 +1151,7 @@ source "arch/mips/pic32/Kconfig"
  source "arch/mips/ralink/Kconfig"
  source "arch/mips/sgi-ip27/Kconfig"
  source "arch/mips/sibyte/Kconfig"
