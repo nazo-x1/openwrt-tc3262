@@ -35,7 +35,7 @@
 +config MIPS_TC3262
 +        bool
 +        select DMA_NONCOHERENT
-+        select HW_HAS_PCI
++        select HAVE_PCI
 +        select BOOT_RAW
 +        select SYS_HAS_EARLY_PRINTK
 +        select SYS_HAS_CPU_MIPS32_R1
@@ -214,3 +214,27 @@
  {
  	if (!cpu_has_counter || !mips_hpt_frequency)
  		return -ENXIO;
+--- a/drivers/tty/serial/Makefile
++++ b/drivers/tty/serial/Makefile
+@@ -87,6 +87,7 @@ obj-$(CONFIG_SERIAL_RDA)	+= rda-uart.o
+ obj-$(CONFIG_SERIAL_MILBEAUT_USIO) += milbeaut_usio.o
+ obj-$(CONFIG_SERIAL_SIFIVE)	+= sifive.o
+ obj-$(CONFIG_SERIAL_LITEUART) += liteuart.o
++obj-$(CONFIG_SERIAL_TC3162)	+= tc3162_uart.o
+ 
+ # GPIOLIB helpers for modem control lines
+ obj-$(CONFIG_SERIAL_MCTRL_GPIO)	+= serial_mctrl_gpio.o
+--- a/drivers/tty/serial/Kconfig
++++ b/drivers/tty/serial/Kconfig
+@@ -1562,6 +1562,11 @@ config SERIAL_LITEUART_CONSOLE
+ 	  and warnings and which allows logins in single user mode).
+ 	  Otherwise, say 'N'.
+ 
++config SERIAL_TC3162
++	bool "TC3162/TC3262 serial port support"
++	depends on MIPS_TC3262
++	select SERIAL_CORE
++
+ endmenu
+ 
+ config SERIAL_MCTRL_GPIO
