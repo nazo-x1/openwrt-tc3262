@@ -19,13 +19,7 @@ choice
 		bool "SPI NAND Flash"
 		depends on ECONET_EN75XX_MP
 		select MTD_NAND
-
-	config MTD_NAND_MT7621
-		bool "NAND Flash"
-		depends on RALINK_MT7621
-		select MTD_NAND
-		select MTD_NAND_IDS
-		select MTD_NAND_ECC
+		select MTD_RAW_NAND
 endchoice
 
 config MTD_SPI_FAST_CLOCK

@@ -58,7 +58,7 @@
 #include "spi_nand_flash.h"
 
 /* enable flash chip HW ECC */
-#define SPINAND_ONDIEECC
+//#define SPINAND_ONDIEECC
 
 #if IS_ENABLED(CONFIG_MTD_UBI)
 #define UBIFS_BLANK_PAGE_FIXUP
@@ -2897,12 +2897,16 @@ static SPI_NAND_FLASH_RTN_T SPI_NAND_Flash_Init(void)
 
 #define MAX_WAIT_JIFFIES		(40 * HZ)
 
-static inline struct spinand_state *mtd_to_state(struct mtd_info *mtd)
+static inline struct spinand_state *nand_to_state(struct nand_chip *nand)
 {
-	struct nand_chip *chip = (struct nand_chip *)mtd->priv;
-	struct en75xx_spinand_host *host = (struct en75xx_spinand_host *)chip->priv;
+	struct en75xx_spinand_host *host = (struct en75xx_spinand_host *)nand->priv;
 
 	return &host->state;
+}
+
+static inline struct spinand_state *mtd_to_state(struct mtd_info *mtd)
+{
+	return nand_to_state((struct nand_chip *)mtd->priv);
 }
 
 /*
@@ -3122,9 +3126,10 @@ static int spinand_erase_block(u32 block_id)
 	return -1;
 }
 
-static void spinand_write_buf(struct mtd_info *mtd, const uint8_t *buf, int len)
+static void spinand_write_buf(struct nand_chip *nand, const uint8_t *buf, int len)
 {
-	struct spinand_state *state = mtd_to_state(mtd);
+	struct spinand_state *state = nand_to_state(nand);
+	struct mtd_info *mtd = nand_to_mtd(nand);
 	int min_oob_size;
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_write_buf]: enter \n");
@@ -3143,9 +3148,9 @@ static void spinand_write_buf(struct mtd_info *mtd, const uint8_t *buf, int len)
 	}
 }
 
-static void spinand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
+static void spinand_read_buf(struct nand_chip *nand, uint8_t *buf, int len)
 {
-	struct spinand_state *state = mtd_to_state(mtd);
+	struct spinand_state *state = nand_to_state(nand);
 	struct SPI_NAND_FLASH_INFO_T *ptr_dev_info_t = _SPI_NAND_GET_DEVICE_INFO_PTR;
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_read_buf]: enter, len=0x%x, offset=0x%x\n", len, state->buf_idx);
@@ -3188,6 +3193,7 @@ static int spinand_enable_ecc(void)
 
 	return 0;
 }
+#endif
 
 static int spinand_disable_ecc(void)
 {
@@ -3200,9 +3206,12 @@ static int spinand_disable_ecc(void)
 	return 0;
 }
 
+#ifdef SPINAND_ONDIEECC
 static int
-spinand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, const uint8_t *buf, int oob_required, int page)
+spinand_write_page_hwecc(struct nand_chip *chip, const uint8_t *buf, int oob_required, int page)
 {
+	struct mtd_info *mtd = nand_to_mtd(chip);
+
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_write_page_hwecc]: enter \n");
 
 	spinand_write_buf(mtd, buf, mtd->writesize);
@@ -3217,9 +3226,10 @@ spinand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, const uin
 }
 
 static int
-spinand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, uint8_t *buf, int oob_required, int page)
+spinand_read_page_hwecc(struct nand_chip *chip, uint8_t *buf, int oob_required, int page)
 {
 	struct SPI_NAND_FLASH_INFO_T *ptr_dev_info_t = _SPI_NAND_GET_DEVICE_INFO_PTR;
+	struct mtd_info *mtd = nand_to_mtd(chip);
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_read_page_hwecc]: enter, page=0x%x \n", page);
 
@@ -3241,9 +3251,9 @@ spinand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, uint8_t *b
 }
 #endif
 
-static int spinand_write_oob(struct mtd_info *mtd, struct nand_chip *chip, int page)
+static int spinand_write_oob(struct nand_chip *chip, int page)
 {
-	struct spinand_state *state = mtd_to_state(mtd);
+	struct spinand_state *state = nand_to_state(chip);
 	SPI_NAND_FLASH_RTN_T rtn_status = SPI_NAND_FLASH_RTN_NO_ERROR;
 	struct SPI_NAND_FLASH_INFO_T *ptr_dev_info_t = _SPI_NAND_GET_DEVICE_INFO_PTR;
 
@@ -3259,50 +3269,50 @@ static int spinand_write_oob(struct mtd_info *mtd, struct nand_chip *chip, int p
 	return -EIO;
 }
 
-static int spinand_block_markbad(struct mtd_info *mtd, loff_t offset)
+static int spinand_block_markbad(struct nand_chip *nand, loff_t offset)
 {
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_block_markbad]: enter , offset=0x%x\n", offset);
 	return 0;
 }
 
-static int spinand_block_bad(struct mtd_info *mtd, loff_t ofs)
+static int spinand_block_bad(struct nand_chip *nand, loff_t ofs)
 {
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_block_bad]: enter \n");
 	return 0;
 }
 
-static void spinand_select_chip(struct mtd_info *mtd, int dev)
+static void spinand_select_chip(struct nand_chip *nand, int dev)
 {
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_select_chip]: enter \n");
 }
 
-static int spinand_dev_ready(struct mtd_info *mtd)
+static int spinand_dev_ready(struct nand_chip *nand)
 {
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_dev_ready]: enter \n");
 	return 1;
 }
 
-static void spinand_enable_hwecc(struct mtd_info *mtd, int mode)
+static void spinand_enable_hwecc(struct nand_chip *nand, int mode)
 {
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_enable_hwecc]: enter \n");
 }
 
-static int spinand_correct_data(struct mtd_info *mtd, u_char *dat,
+static int spinand_correct_data(struct nand_chip *nand, u_char *dat,
 				u_char *read_ecc, u_char *calc_ecc)
 {
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_correct_data]: enter \n");
 	return 0;
 }
 
-static int spinand_calculate_ecc(struct mtd_info *mtd, const u_char *dat, u_char *ecc_code)
+static int spinand_calculate_ecc(struct nand_chip *nand, const u_char *dat, u_char *ecc_code)
 {
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_calculate_ecc]: enter \n");
 	return 0;
 }
 
-static uint8_t spinand_read_byte(struct mtd_info *mtd)
+static uint8_t spinand_read_byte(struct nand_chip *nand)
 {
-	struct spinand_state *state = mtd_to_state(mtd);
+	struct spinand_state *state = nand_to_state(nand);
 	u8 data;
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_read_byte]: enter \n");
@@ -3312,18 +3322,18 @@ static uint8_t spinand_read_byte(struct mtd_info *mtd)
 	return data;
 }
 
-static int spinand_wait(struct mtd_info *mtd, struct nand_chip *chip)
+static int spinand_wait(struct nand_chip *chip)
 {
-	unsigned long timeo = jiffies;
-	int retval, state = chip->state;
+	unsigned long timeo = jiffies + (HZ * 400) / 1000;
+	int retval;
 	u8 status;
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_wait]: enter \n");
 
-	if (state == FL_ERASING)
+	/*if (state == FL_ERASING)
 		timeo += (HZ * 400) / 1000;
 	else
-		timeo += (HZ * 20) / 1000;
+		timeo += (HZ * 20) / 1000;*/
 
 	while (time_before(jiffies, timeo)) {
 		retval = spinand_read_status(&status);
@@ -3346,10 +3356,11 @@ static void spinand_reset(void)
 	spi_nand_protocol_reset();
 }
 
-static void spinand_cmdfunc(struct mtd_info *mtd, unsigned int command, int column, int page)
+static void spinand_cmdfunc(struct nand_chip *nand, unsigned int command, int column, int page)
 {
 	struct SPI_NAND_FLASH_INFO_T *ptr_dev_info_t = _SPI_NAND_GET_DEVICE_INFO_PTR;
-	struct spinand_state *state = mtd_to_state(mtd);
+	struct spinand_state *state = nand_to_state(nand);
+	struct mtd_info *mtd = nand_to_mtd(nand);
 	u16 block_id;
 
 	state->command = command;
@@ -3496,15 +3507,15 @@ static int en75xx_spinand_probe(void)
 
 	chip = &host->nand_chip;
 	chip->priv			= host;
-	chip->read_byte			= spinand_read_byte;
-	chip->read_buf			= spinand_read_buf;
-	chip->write_buf			= spinand_write_buf;
-	chip->waitfunc			= spinand_wait;
-	chip->select_chip		= spinand_select_chip;
-	chip->dev_ready			= spinand_dev_ready;
-	chip->cmdfunc			= spinand_cmdfunc;
+	chip->legacy.read_byte		= spinand_read_byte;
+	chip->legacy.read_buf		= spinand_read_buf;
+	chip->legacy.write_buf		= spinand_write_buf;
+	chip->legacy.waitfunc		= spinand_wait;
+	chip->legacy.select_chip	= spinand_select_chip;
+	chip->legacy.dev_ready		= spinand_dev_ready;
+	chip->legacy.cmdfunc		= spinand_cmdfunc;
 #ifdef SPINAND_ONDIEECC
-	chip->ecc.mode			= NAND_ECC_HW;
+	chip->ecc.engine_type		= NAND_ECC_ENGINE_TYPE_ON_DIE;
 	chip->ecc.size			= 0x200;
 	chip->ecc.bytes			= 0x4;
 	chip->ecc.steps			= 0x4;
@@ -3523,7 +3534,7 @@ static int en75xx_spinand_probe(void)
 			pr_warn("%s: enable ECC failed!\n", __func__);
 	}
 #else
-	chip->ecc.mode			 = NAND_ECC_SOFT;
+	chip->ecc.engine_type		 = NAND_ECC_ENGINE_TYPE_NONE;
 
 	/* disable OnDie ECC */
 	if (spinand_disable_ecc() < 0)
@@ -3531,8 +3542,8 @@ static int en75xx_spinand_probe(void)
 #endif
 
 	/* for BMT, we need to revise driver architecture */
-	chip->block_markbad		= spinand_block_markbad;	/* tmp null */
-	chip->block_bad			= spinand_block_bad;		/* tmp null */
+	chip->legacy.block_markbad	= spinand_block_markbad;	/* tmp null */
+	chip->legacy.block_bad		= spinand_block_bad;		/* tmp null */
 	chip->ecc.write_oob		= spinand_write_oob;
 	chip->ecc.calculate		= spinand_calculate_ecc;
 	chip->ecc.correct		= spinand_correct_data;
@@ -3567,15 +3578,9 @@ static int en75xx_spinand_probe(void)
 	//spi_nand_flash_ids[0].chipsize	= (ptr_dev_info_t->device_size) >> 20;
 	spi_nand_flash_ids[0].erasesize	= ptr_dev_info_t->erase_size;
 
-	if (nand_scan_ident(mtd, 1, spi_nand_flash_ids)) {
-		pr_warn("%s fail!\n", "nand_scan_ident");
-		err = -ENXIO;
-		goto out_err_free;
-	}
-
-	if (nand_scan_tail(mtd)) {
-		pr_warn("%s fail!\n", "nand_scan_tail");
-		err = -ENXIO;
+	err = nand_scan_with_ids(chip, 1, spi_nand_flash_ids);
+	if (err) {
+		pr_warn("%s fail!\n", "nand_scan_with_ids");
 		goto out_err_free;
 	}
 
@@ -3633,7 +3638,7 @@ static void __init spi_nand_flash_exit(void)
 
 	g_en75xx_mtd = NULL;
 
-	nand_release(chip);
+	nand_cleanup(chip);
 	kfree(host->state.oob_buf);
 	kfree(host->state.buf);
 	kfree(host);
