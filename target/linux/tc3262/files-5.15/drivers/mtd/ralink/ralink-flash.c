@@ -7,7 +7,7 @@
 #include <linux/slab.h>
 
 #include <asm/io.h>
-#include <asm/rt2880/rt_mmap.h>
+#include <asm/tc3162/rt_mmap.h>
 
 #include "ralink-flash.h"
 

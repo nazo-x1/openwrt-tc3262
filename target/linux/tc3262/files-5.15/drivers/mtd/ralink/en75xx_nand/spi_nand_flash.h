@@ -36,6 +36,7 @@
 #include <asm/types.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
+#include <linux/mtd/rawnand.h>
 
 //#define SPI_NAND_FLASH_DEBUG
 

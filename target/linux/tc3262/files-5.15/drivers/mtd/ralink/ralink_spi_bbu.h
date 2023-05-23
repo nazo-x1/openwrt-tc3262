@@ -1,7 +1,7 @@
 #ifndef __SPI_BBU_H__
 #define __SPI_BBU_H__
 
-#include <asm/rt2880/rt_mmap.h>
+#include <asm/tc3162/rt_mmap.h>
 
 #define SPI_REG_CTL		(RALINK_SPI_BASE + 0x00)
 #define SPI_REG_OPCODE		(RALINK_SPI_BASE + 0x04)

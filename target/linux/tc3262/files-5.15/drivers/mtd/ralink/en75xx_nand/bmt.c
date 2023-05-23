@@ -734,7 +734,7 @@ bmt_struct *init_bmt(struct nand_chip *chip, int size)
 	}
 
 	nand_chip_bmt = chip;
-	total_block_count = chip->chipsize >> chip->phys_erase_shift;
+	total_block_count = nanddev_target_size(&chip->base) >> chip->phys_erase_shift;
 	system_block_count = total_block_count - bmt_block_count;
 
 	page_per_block = BLOCK_SIZE_BMT / PAGE_SIZE_BMT;

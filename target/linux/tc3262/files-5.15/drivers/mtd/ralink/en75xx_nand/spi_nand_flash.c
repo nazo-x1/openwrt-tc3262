@@ -2472,7 +2472,7 @@ int en7512_nand_exec_write_page(u32 page, u8 *dat, u8 *oob)
 static int calc_bmt_pool_size(struct mtd_info *mtd, u32 *bmt_block_count_max)
 {
 	struct nand_chip *nand = (struct nand_chip *)mtd->priv;
-	unsigned int chip_size = nand->chipsize;
+	unsigned int chip_size = nanddev_target_size(&nand->base);
 	unsigned int block_size = 1u << nand->phys_erase_shift;
 	int total_block = chip_size / block_size;
 	int last_block = total_block - 1;
@@ -3564,7 +3564,7 @@ static int en75xx_spinand_probe(void)
 	spi_nand_flash_ids[0].dev_id	= ptr_dev_info_t->dev_id;
 	spi_nand_flash_ids[0].pagesize	= ptr_dev_info_t->page_size;
 	spi_nand_flash_ids[0].oobsize	= ptr_dev_info_t->oob_size;
-	spi_nand_flash_ids[0].chipsize	= (ptr_dev_info_t->device_size) >> 20;
+	//spi_nand_flash_ids[0].chipsize	= (ptr_dev_info_t->device_size) >> 20;
 	spi_nand_flash_ids[0].erasesize	= ptr_dev_info_t->erase_size;
 
 	if (nand_scan_ident(mtd, 1, spi_nand_flash_ids)) {

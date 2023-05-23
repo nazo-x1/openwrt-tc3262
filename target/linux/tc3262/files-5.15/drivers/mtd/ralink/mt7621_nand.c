@@ -4,6 +4,7 @@
 #include <linux/module.h>
 #include <linux/errno.h>
 #include <linux/types.h>
+#include <linux/math.h>
 #include <linux/delay.h>
 #include <linux/wait.h>
 #include <linux/slab.h>
@@ -14,7 +15,7 @@
 #include <linux/mtd/nand_ecc.h>
 #include <linux/mtd/partitions.h>
 
-#include <asm/rt2880/rt_mmap.h>
+#include <asm/tc3162/rt_mmap.h>
 
 #include <soc/ralink/dev_nand.h>
 
@@ -189,6 +190,16 @@ static void get_nand_device_info_bootstrap(void)
 	}
 }
 
+/* Extract the bits of per cell from the 3rd byte of the extended ID */
+static int nand_get_bits_per_cell(u8 cellinfo)
+{
+	int bits;
+
+	bits = cellinfo & NAND_CI_CELLTYPE_MSK;
+	bits >>= NAND_CI_CELLTYPE_SHIFT;
+	return bits + 1;
+}
+
 static void mtk_nand_readid(struct mtd_info *mtd, struct nand_chip *chip)
 {
 	u8 id_data[6];
@@ -222,7 +233,22 @@ static void mtk_nand_readid(struct mtd_info *mtd, struct nand_chip *chip)
 	mtd->writesize = nand_devinfo.pagesize;
 	mtd->oobsize = nand_devinfo.sparesize;
 	mtd->erasesize = ((u32)nand_devinfo.blocksize << 10);
-	chip->chipsize = ((uint64_t)nand_devinfo.totalsize << 20);
+	//chip->chipsize = ((uint64_t)nand_devinfo.totalsize << 20);
+	printk(KERN_INFO "Expected chipsize: 0x%llx\n",
+		((uint64_t)nand_devinfo.totalsize << 20));
+	chip->base.memorg.bits_per_cell = nand_get_bits_per_cell(id_data[2]);
+	chip->base.memorg.pagesize = (unsigned int)nand_devinfo.pagesize;
+	chip->base.memorg.oobsize = (unsigned int)nand_devinfo.sparesize;
+	chip->base.memorg.pages_per_eraseblock = ((unsigned int)nand_devinfo.blocksize << 10)
+		/ ((unsigned int)nand_devinfo.pagesize);
+	chip->base.memorg.eraseblocks_per_lun =
+		DIV_ROUND_DOWN_ULL((u64)nand_devinfo.totalsize << 20,
+				   (u64)nand_devinfi.blocksize << 10);
+	chip->base.memorg.planes_per_lun = 1;
+	chip->base.memorg.luns_per_target = 1;
+	chip->base.memorg.ntargets = 1;
+	printk(KERN_INFO "Calculated chipsize: 0x%llx\n",
+		nanddev_target_size(&chip->base);
 
 	/* update ecc layout */
 	if (nand_devinfo.pagesize == 4096)
@@ -2287,9 +2313,9 @@ static int mtk_nand_probe(struct platform_device *pdev)
 
 #ifdef LOAD_FACT_BBT
 	load_fact_bbt(mtd);
-	chip->chipsize -= (FACT_BBT_POOL_SIZE << chip->phys_erase_shift);
+	//chip->chipsize -= (FACT_BBT_POOL_SIZE << chip->phys_erase_shift);
 #endif
-	mtd->size = chip->chipsize;
+	mtd->size = nanddev_target_size(&chip->base);
 
 #ifdef SKIP_BAD_BLOCK
 	shift_on_bbt = true;

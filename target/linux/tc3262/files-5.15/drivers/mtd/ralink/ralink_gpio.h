@@ -1,7 +1,7 @@
 #ifndef __RALINK_GPIO_H__
 #define __RALINK_GPIO_H__
 
-#include <asm/rt2880/rt_mmap.h>
+#include <asm/tc3162/rt_mmap.h>
 
 #define RALINK_REG_GPIOMODE		(RALINK_SYSCTL_BASE + 0x60)
 #if defined(CONFIG_RALINK_MT7628)
