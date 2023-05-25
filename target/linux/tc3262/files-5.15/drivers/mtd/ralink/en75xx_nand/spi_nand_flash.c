@@ -58,7 +58,7 @@
 #include "spi_nand_flash.h"
 
 /* enable flash chip HW ECC */
-//#define SPINAND_ONDIEECC
+#define SPINAND_ONDIEECC
 
 #if IS_ENABLED(CONFIG_MTD_UBI)
 #define UBIFS_BLANK_PAGE_FIXUP
@@ -3214,8 +3214,8 @@ spinand_write_page_hwecc(struct nand_chip *chip, const uint8_t *buf, int oob_req
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_write_page_hwecc]: enter \n");
 
-	spinand_write_buf(mtd, buf, mtd->writesize);
-	spinand_write_buf(mtd, chip->oob_poi, mtd->oobsize);
+	spinand_write_buf(chip, buf, mtd->writesize);
+	spinand_write_buf(chip, chip->oob_poi, mtd->oobsize);
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_2, "spinand_write_page_hwecc: data=\n");
 	_SPI_NAND_DEBUG_PRINTF_ARRAY(SPI_NAND_FLASH_DEBUG_LEVEL_2, &buf[0], mtd->writesize);
@@ -3230,6 +3230,8 @@ spinand_read_page_hwecc(struct nand_chip *chip, uint8_t *buf, int oob_required, 
 {
 	struct SPI_NAND_FLASH_INFO_T *ptr_dev_info_t = _SPI_NAND_GET_DEVICE_INFO_PTR;
 	struct mtd_info *mtd = nand_to_mtd(chip);
+
+	(void)mtd;
 
 	_SPI_NAND_DEBUG_PRINTF(SPI_NAND_FLASH_DEBUG_LEVEL_1, "[spinand_read_page_hwecc]: enter, page=0x%x \n", page);
 
@@ -3534,7 +3536,7 @@ static int en75xx_spinand_probe(void)
 			pr_warn("%s: enable ECC failed!\n", __func__);
 	}
 #else
-	chip->ecc.engine_type		 = NAND_ECC_ENGINE_TYPE_NONE;
+	chip->ecc.engine_type		= NAND_ECC_ENGINE_TYPE_NONE;
 
 	/* disable OnDie ECC */
 	if (spinand_disable_ecc() < 0)
@@ -3575,7 +3577,7 @@ static int en75xx_spinand_probe(void)
 	spi_nand_flash_ids[0].dev_id	= ptr_dev_info_t->dev_id;
 	spi_nand_flash_ids[0].pagesize	= ptr_dev_info_t->page_size;
 	spi_nand_flash_ids[0].oobsize	= ptr_dev_info_t->oob_size;
-	//spi_nand_flash_ids[0].chipsize	= (ptr_dev_info_t->device_size) >> 20;
+	spi_nand_flash_ids[0].chipsize	= (ptr_dev_info_t->device_size) >> 20;
 	spi_nand_flash_ids[0].erasesize	= ptr_dev_info_t->erase_size;
 
 	err = nand_scan_with_ids(chip, 1, spi_nand_flash_ids);

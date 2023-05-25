@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 ARCH:=mips
 BOARD:=tc3262
 BOARDNAME:=TC3262 / EN75xx
-FEATURES:=squashfs usb usbstorage hwnat
+FEATURES:=pci squashfs usb usbstorage hwnat
 CFLAGS:=-O2 -pipe -mips32r2 -mtune=34kc
 SUBTARGETS:=en7526
 
@@ -25,6 +25,6 @@ endef
 # include the profiles
 include $(INCLUDE_DIR)/target.mk
 
-DEFAULT_PACKAGES+=kmod-ensoc_eth kmod-mips-wdt
+DEFAULT_PACKAGES+=kmod-ensoc_eth kmod-mips-wdt kmod-mt7603 kmod-mt76x2
 
 $(eval $(call BuildTarget))
