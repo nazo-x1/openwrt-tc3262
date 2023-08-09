@@ -7,16 +7,16 @@
 
 include $(TOPDIR)/rules.mk
 
-ARCH:=mips
-BOARD:=en7526
-BOARDNAME:=EcoNet EN7526
-FEATURES:=squashfs usb usbstorage hwnat
-CFLAGS:=-O2 -pipe -mips32r2 -mtune=34kc
-BOARD_CPPFLAGS:=-D__EN7526__
+ARCH:=mipsel
+BOARD:=en7528
+BOARDNAME:=EcoNet EN7528
+FEATURES:=squashfs hwnat
+CFLAGS:=-O2 -pipe -mips32r2 -mtune=1004kc
+BOARD_CPPFLAGS:=-D__EN7528__
 KERNEL_PATCHVER:=4.9
 
 define Target/Description
-	Build firmware image for EN7526 based boards
+	Build firmware image for EN7528 based boards
 endef
 
 # include the profiles
