@@ -3,7 +3,7 @@
 #include <linux/interrupt.h>
 
 #include <asm/setup.h>
-#include <asm/mips-cm.h>
+#include <asm/mips-cps.h>
 #include <asm/gic.h>
 
 #include <asm/tc3162/tc3162.h>
@@ -166,6 +166,7 @@ void __init gic_platform_init(int irqs, struct irq_chip *irq_controller)
 		GICWRITE(GIC_REG_ADDR(SHARED, GIC_SH_MAP_TO_PIN(intSrc)), GIC_MAP_TO_NMI_MSK);
 #endif
 }
+#define CM_GCR_GIC_BASE_GICEN_MSK		(_ULCAST_(0x1) << 0)
 
 void __init arch_init_irq(void)
 {

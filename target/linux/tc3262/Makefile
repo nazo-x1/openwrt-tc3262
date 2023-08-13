@@ -11,15 +11,15 @@ ARCH:=mips
 BOARD:=tc3262
 BOARDNAME:=TC3262 / EN75xx
 FEATURES:=pci squashfs usb usbstorage hwnat
-CFLAGS:=-O2 -pipe -mips32r2 -mtune=34kc
-SUBTARGETS:=en7526
+CFLAGS:=-O2 -pipe -mips32r2 -mtune=1004kc
+SUBTARGETS:=en7528
 
-# BOARD_CPPFLAGS:=-D__EN7526__
+# BOARD_CPPFLAGS:=-D__EN7528__
 KERNEL_PATCHVER:=5.15
 
 define Target/Description
 	Build firmware image for boards decending from TrendChip TC3262
-	Including EcoNet EN7526
+	Including EcoNet EN7528
 endef
 
 # include the profiles

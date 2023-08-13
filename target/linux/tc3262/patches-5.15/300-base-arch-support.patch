@@ -26,8 +26,8 @@
 +        select SYS_SUPPORTS_MIPS_CPS
 +        select SYS_SUPPORTS_HIGHMEM
 +        select MIPS_CPU_SCACHE
-+#       select IRQ_GIC - TODO(cjd): This has been replaced with MIPS_GIC but it needs testing
-+#       select IRQ_GIC_EIC
++        select MIPS_GIC # - TODO(cjd): This has been replaced with MIPS_GIC but it needs testing
++        select IRQ_GIC_EIC
 +        select WEAK_REORDERING_BEYOND_LLSC
 +        select TC3262_CPU_TIMER
 +        bool
@@ -257,3 +257,13 @@
  
  # Composite drivers must be loaded last
  obj-y				+= composite/
+--- a/arch/mips/kernel/Makefile
++++ b/arch/mips/kernel/Makefile
+@@ -74,6 +74,7 @@
+ obj-$(CONFIG_MIPS_MSC)		+= irq-msc01.o
+ obj-$(CONFIG_IRQ_TXX9)		+= irq_txx9.o
+ obj-$(CONFIG_IRQ_GT641XX)	+= irq-gt641xx.o
++obj-$(CONFIG_MIPS_GIC)		+= irq-gic.o
+ 
+ obj-$(CONFIG_KPROBES)		+= kprobes.o
+ obj-$(CONFIG_32BIT)		+= scall32-o32.o

@@ -1,7 +1,7 @@
 
 obj-y := prom.o cmdline.o printf.o setup.o time.o
 
-ifdef CONFIG_IRQ_GIC
+ifdef CONFIG_MIPS_GIC
 obj-y += irq-gic.o
 else
 obj-y += irq.o
