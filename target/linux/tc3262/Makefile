@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 ARCH:=mips
 BOARD:=tc3262
 BOARDNAME:=TC3262 / EN75xx
-FEATURES:=pci squashfs usb usbstorage hwnat
+FEATURES:=pci squashfs hwnat
 CFLAGS:=-O2 -pipe -mips32r2 -mtune=1004kc
 SUBTARGETS:=en7528
 
