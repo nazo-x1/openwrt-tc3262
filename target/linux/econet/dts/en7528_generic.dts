@@ -10,13 +10,14 @@
 
 	memory@0 {
 		// We hope at least 64MB will be available on every device
+		// Raise up to 128MB for test
 		device_type = "memory";
-		reg = <0x00000000 0x4000000>;
+		reg = <0x00000000 0x8000000>;
 	};
 
 	chosen {
 		stdout-path = "serial0:115200n8";
-		linux,usable-memory-range = <0x00020000 0x3fe0000>;
+		linux,usable-memory-range = <0x00020000 0x0ffe0000>;
 	};
 
 	aliases {
@@ -34,6 +35,26 @@
 
 &gmac0 {
 	status = "okay";
+};
+
+&gsw_port1 {
+	status = "okay";
+	label = "lan1";
+};
+
+&gsw_port2 {
+	status = "okay";
+	label = "lan2";
+};
+
+&gsw_port3 {
+	status = "okay";
+	label = "lan3";
+};
+
+&gsw_port4 {
+	status = "okay";
+	label = "lan4";
 };
 
 &nand {

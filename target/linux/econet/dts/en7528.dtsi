@@ -232,7 +232,7 @@
 
 	ethernet: ethernet@1fb50000 {
 		compatible = "econet,en7528-eth";
-		reg = <0x1fb50000 0x10000>;
+		reg = <0x1fb50000 0x8000>;
 
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -244,10 +244,9 @@
 		resets = <&scu EN7523_FE_RST>,
 			 <&scu EN7523_FE_PDMA_RST>,
 			 <&scu EN7523_FE_QDMA_RST>,
-			 <&scu EN7523_GSW_RST>,
 			 <&scu EN7523_XPON_MAC_RST>,
 			 <&scu EN7523_XPON_PHY_RST>;
-		reset-names = "fe", "qdma0", "qdma1", "gsw",
+		reset-names = "fe", "qdma0", "qdma1",
 			      "xpon-mac", "xpon-phy";
 
 		gmac0: mac@0 {
@@ -270,4 +269,85 @@
 			status = "disabled";
 		};
 	};
+
+	switch: switch@1fb58000 {
+		compatible = "econet,en7528-switch";
+		reg = <0x1fb58000 0x8000>;
+		resets = <&scu EN7523_GSW_RST>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			gsw_port1: port@1 {
+				reg = <1>;
+				phy-mode = "internal";
+				phy-handle = <&swphy0>;
+				status = "disabled";
+			};
+
+			gsw_port2: port@2 {
+				reg = <2>;
+				phy-mode = "internal";
+				phy-handle = <&swphy1>;
+				status = "disabled";
+			};
+
+			gsw_port3: port@3 {
+				reg = <3>;
+				phy-mode = "internal";
+				phy-handle = <&swphy2>;
+				status = "disabled";
+			};
+
+			gsw_port4: port@4 {
+				reg = <4>;
+				phy-mode = "internal";
+				phy-handle = <&swphy3>;
+				status = "disabled";
+			};
+
+			port@6 {
+				reg = <6>;
+				label = "cpu";
+				ethernet = <&gmac0>;
+				phy-mode = "trgmii";
+
+				fixed-link {
+					speed = <1000>;
+					full-duplex;
+				};
+			};
+		};
+
+		mdio {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			swphy0: ethernet-phy@9 {
+				compatible = "ethernet-phy-ieee802.3-c22";
+				reg = <9>;
+				phy-mode = "internal";
+			};
+
+			swphy1: ethernet-phy@a {
+				compatible = "ethernet-phy-ieee802.3-c22";
+				reg = <10>;
+				phy-mode = "internal";
+			};
+
+			swphy2: ethernet-phy@b {
+				compatible = "ethernet-phy-ieee802.3-c22";
+				reg = <11>;
+				phy-mode = "internal";
+			};
+
+			swphy3: ethernet-phy@c {
+				compatible = "ethernet-phy-ieee802.3-c22";
+				reg = <12>;
+				phy-mode = "internal";
+			};
+		};
+	};
+
 };

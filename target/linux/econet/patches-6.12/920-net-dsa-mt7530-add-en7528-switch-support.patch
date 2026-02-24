@@ -1,0 +1,131 @@
+--- a/drivers/net/dsa/mt7530.h
++++ b/drivers/net/dsa/mt7530.h
+@@ -20,6 +20,7 @@ enum mt753x_id {
+ 	ID_MT7531 = 2,
+ 	ID_MT7988 = 3,
+ 	ID_EN7581 = 4,
++	ID_EN7528 = 5,
+ };
+ 
+ #define	NUM_TRGMII_CTRL			5
+--- a/drivers/net/dsa/mt7530.c
++++ b/drivers/net/dsa/mt7530.c
+@@ -2208,7 +2208,8 @@ mt7530_setup_irq(struct mt7530_priv *pri
+ 		return priv->irq ? : -EINVAL;
+ 	}
+ 
+-	if (priv->id == ID_MT7988 || priv->id == ID_EN7581)
++	if (priv->id == ID_MT7988 || priv->id == ID_EN7581 ||
++	    priv->id == ID_EN7528)
+ 		priv->irq_domain = irq_domain_add_linear(np, MT7530_NUM_PHYS,
+ 							 &mt7988_irq_domain_ops,
+ 							 priv);
+@@ -2806,6 +2807,82 @@ static void en7581_mac_port_get_caps(str
+ 	}
+ }
+ 
++static void en7528_mac_port_get_caps(struct dsa_switch *ds, int port,
++				     struct phylink_config *config)
++{
++	switch (port) {
++	case 0 ... 4:
++		__set_bit(PHY_INTERFACE_MODE_INTERNAL,
++			  config->supported_interfaces);
++		config->mac_capabilities |= MAC_10 | MAC_100 | MAC_1000FD;
++		break;
++	/* Port 6 connects to SoC GDM via TRGMII at 1Gbps */
++	case 6:
++		__set_bit(PHY_INTERFACE_MODE_TRGMII,
++			  config->supported_interfaces);
++		config->mac_capabilities |= MAC_1000FD;
++		break;
++	}
++}
++
++static int en7528_setup(struct dsa_switch *ds)
++{
++	struct mt7530_priv *priv = ds->priv;
++	u32 id, val;
++	int i, ret;
++
++	/* Read and log chip identification for debugging */
++	id = mt7530_read(priv, MT7530_CREV);
++	dev_info(priv->dev,
++		 "EN7528 switch CREV=0x%08x (chip=0x%04x rev=%d)\n",
++		 id, id >> CHIP_NAME_SHIFT, id & 0xf);
++
++	val = mt7530_read(priv, MT7531_CREV);
++	dev_info(priv->dev, "EN7528 switch MT7531_CREV=0x%08x\n", val);
++
++	val = mt7530_read(priv, MT753X_MTRAP);
++	dev_info(priv->dev, "EN7528 switch MTRAP=0x%08x\n", val);
++
++	/* Log PMCR for CPU-facing ports before reset */
++	for (i = 5; i <= 6; i++) {
++		val = mt7530_read(priv, MT753X_PMCR_P(i));
++		dev_info(priv->dev, "EN7528 pre-reset PMCR_P%d=0x%08x\n",
++			 i, val);
++	}
++
++	/* Reset the switch via reset controller if available */
++	if (!IS_ERR_OR_NULL(priv->rstc)) {
++		reset_control_assert(priv->rstc);
++		usleep_range(20, 50);
++		reset_control_deassert(priv->rstc);
++		usleep_range(20, 50);
++	}
++
++	/* Reset internal PHYs */
++	mt7530_write(priv, MT7530_SYS_CTRL, SYS_CTRL_PHY_RST);
++
++	/* Log post-reset state */
++	val = mt7530_read(priv, MT753X_MTRAP);
++	dev_info(priv->dev, "EN7528 post-reset MTRAP=0x%08x\n", val);
++
++	for (i = 5; i <= 6; i++) {
++		val = mt7530_read(priv, MT753X_PMCR_P(i));
++		dev_info(priv->dev, "EN7528 post-reset PMCR_P%d=0x%08x\n",
++			 i, val);
++	}
++
++	/* Scan for internal PHYs via PHY_IAC to determine addresses */
++	for (i = 0; i < 16; i++) {
++		ret = mt7531_ind_c22_phy_read(priv, i, MII_PHYSID1);
++		if (ret > 0 && ret != 0xffff)
++			dev_info(priv->dev,
++				 "EN7528 PHY scan: addr=%d PHYSID1=0x%04x\n",
++				 i, ret);
++	}
++
++	return mt7531_setup_common(ds);
++}
++
+ static void
+ mt7530_mac_config(struct dsa_switch *ds, int port, unsigned int mode,
+ 		  phy_interface_t interface)
+@@ -3253,6 +3330,16 @@ const struct mt753x_info mt753x_table[]
+ 		.phy_write_c45 = mt7531_ind_c45_phy_write,
+ 		.mac_port_get_caps = en7581_mac_port_get_caps,
+ 	},
++	[ID_EN7528] = {
++		.id = ID_EN7528,
++		.pcs_ops = &mt7530_pcs_ops,
++		.sw_setup = en7528_setup,
++		.phy_read_c22 = mt7531_ind_c22_phy_read,
++		.phy_write_c22 = mt7531_ind_c22_phy_write,
++		.phy_read_c45 = mt7531_ind_c45_phy_read,
++		.phy_write_c45 = mt7531_ind_c45_phy_write,
++		.mac_port_get_caps = en7528_mac_port_get_caps,
++	},
+ };
+ EXPORT_SYMBOL_GPL(mt753x_table);
+ 
+--- a/drivers/net/dsa/mt7530-mmio.c
++++ b/drivers/net/dsa/mt7530-mmio.c
+@@ -13,6 +13,7 @@ static const struct of_device_id mt7988_
+ 	{ .compatible = "airoha,en7581-switch", .data = &mt753x_table[ID_EN7581], },
+ 	{ .compatible = "mediatek,mt7988-switch", .data = &mt753x_table[ID_MT7988], },
++	{ .compatible = "econet,en7528-switch", .data = &mt753x_table[ID_EN7528], },
+ 	{ /* sentinel */ },
+ };
+ MODULE_DEVICE_TABLE(of, mt7988_of_match);
